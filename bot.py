@@ -1,3 +1,4 @@
+import os
 import io
 import logging
 from threading import Thread
@@ -17,13 +18,22 @@ logger = logging.getLogger("mirror-bot")
 # Discord Bot Setup
 # -----------------------------
 intents = discord.Intents.default()
-intents.message_content = True  # Required to read messages
+intents.message_content = True
 client = discord.Client(intents=intents)
 
-SOURCE_CHANNEL_ID = 1289729762310225941  # Replace with your source channel ID
-TARGET_CHANNEL_ID = 1428532464996974602  # Replace with your target channel ID
+# Channels
+SOURCE_CHANNEL_ID = 1289729762310225941  # Grab messages from this channel
+TARGET_CHANNEL_ID = 1428532464996974602  # Send messages here
 
-client.http_session = None  # Will hold aiohttp session
+# Allowed roles for !Update command
+ALLOWED_ROLE_IDS = {
+    1428547947410362368,
+    1428547946273570828,
+    1428547945514668042,
+    1428547944403046530
+}
+
+client.http_session = None
 
 # -----------------------------
 # Helper to fetch attachments
@@ -67,6 +77,40 @@ async def on_message(message):
         if message.author.bot:
             return
 
+        # Check for !Update command
+        if message.content.strip() == "!Update":
+            # Check if user has any allowed role
+            user_roles = {role.id for role in message.author.roles}
+            if not user_roles.intersection(ALLOWED_ROLE_IDS):
+                await message.channel.send("You don't have permission to run this command.")
+                return
+
+            source_channel = client.get_channel(SOURCE_CHANNEL_ID)
+            target_channel = client.get_channel(TARGET_CHANNEL_ID)
+            if source_channel is None or target_channel is None:
+                logger.error("Source or target channel not found.")
+                return
+
+            # Fetch last 2 messages from source channel
+            messages = await source_channel.history(limit=2, oldest_first=True).flatten()
+
+            for msg in messages:
+                content = f"{msg.author.name}: {msg.content}" if msg.content else None
+
+                files = []
+                for attachment in msg.attachments:
+                    file = await fetch_attachment(attachment.url)
+                    if file:
+                        files.append(file)
+
+                embeds = msg.embeds if msg.embeds else None
+
+                await target_channel.send(content=content, files=files if files else None, embeds=embeds if embeds else None)
+
+            await message.channel.send("Last 2 messages mirrored successfully!")
+            return
+
+        # Automatic mirroring of messages from source to target
         if message.channel.id != SOURCE_CHANNEL_ID:
             return
 
@@ -104,7 +148,7 @@ def home():
     return "Bot is alive!"
 
 def run_web():
-    app.run(host='0.0.0.0', port=10000)  # Render free instance port
+    app.run(host='0.0.0.0', port=10000)
 
 t = Thread(target=run_web, daemon=True)
 t.start()
@@ -113,11 +157,9 @@ t.start()
 # Run the bot
 # -----------------------------
 if __name__ == "__main__":
-    # Put your Discord bot token here
-    token = "MTQyODUzMjkzMTQ0MTQ2MzQzNg.G3AFI3.ixVEWIRIg3IIAxcdQWkV2pEzughjx0tisztwOc"
-
+    token = "MTQyODUzMjkzMTQ0MTQ2MzQzNg.G3AFI3.ixVEWIRIg3IIAxcdQWkV2pEzughjx0tisztwOc"  # Replace with your bot token
     if not token:
-        logger.error("Discord token not set. Exiting.")
-        raise SystemExit("Set your Discord bot token in the script and restart.")
+        logger.error("Bot token not set. Exiting.")
+        raise SystemExit("Set the bot token and restart.")
 
     client.run(token)
