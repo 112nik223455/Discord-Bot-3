@@ -1,4 +1,3 @@
-import os
 import io
 import logging
 from threading import Thread
@@ -114,9 +113,11 @@ t.start()
 # Run the bot
 # -----------------------------
 if __name__ == "__main__":
-    token = os.environ.get("MTQyODUzMjkzMTQ0MTQ2MzQzNg.G3AFI3.ixVEWIRIg3IIAxcdQWkV2pEzughjx0tisztwOc")
+    # Put your Discord bot token here
+    token = "MTQyODUzMjkzMTQ0MTQ2MzQzNg.G3AFI3.ixVEWIRIg3IIAxcdQWkV2pEzughjx0tisztwOc"
+
     if not token:
-        logger.error("MTQyODUzMjkzMTQ0MTQ2MzQzNg.G3AFI3.ixVEWIRIg3IIAxcdQWkV2pEzughjx0tisztwOc environment variable not set. Exiting.")
-        raise SystemExit("Set MTQyODUzMjkzMTQ0MTQ2MzQzNg.G3AFI3.ixVEWIRIg3IIAxcdQWkV2pEzughjx0tisztwOc environment variable and restart.")
+        logger.error("Discord token not set. Exiting.")
+        raise SystemExit("Set your Discord bot token in the script and restart.")
 
     client.run(token)
